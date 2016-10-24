@@ -1,4 +1,13 @@
-# JasperReports for PHP
+# JasperReports for PHP and Laravel Framework
+
+[![Latest Stable Version](https://poser.pugx.org/lavela/phpjasper/v/stable)](https://packagist.org/packages/lavela/phpjasper)
+[![License](https://poser.pugx.org/lavela/phpjasper/license)](https://packagist.org/packages/lavela/phpjasper)
+[![Monthly Downloads](https://poser.pugx.org/lavela/phpjasper/d/monthly)](https://packagist.org/packages/lavela/phpjasper)
+[![Total Downloads](https://poser.pugx.org/lavela/phpjasper/downloads)](https://packagist.org/packages/lavela/phpjasper)
+
+**Is using Linux servers?**
+
+Do not forget to grant permission 777 for the directory **/vendor/lavela/phpjasper/src/JasperStarter/bin** and the file binary **jasperstarter**
 
 ##Introduction
 
@@ -72,7 +81,7 @@ Or in your 'composer.json' file add:
 ```javascript
 {
     "require": {
-		"lavela/phpjasper": "1.0",
+		"lavela/phpjasper": "1.*"
     }
 }
 ```
@@ -102,7 +111,7 @@ require __DIR__ . '/vendor/autoload.php';
 
 use JasperPHP\JasperPHP;
 
-$input = __DIR__ . '/vendor/lavela/phpjasper/examples/hello_world.jrxml';	
+$input = __DIR__ . '/vendor/lavela/phpjasper/examples/hello_world.jrxml';
 
 $jasper = new JasperPHP;
 $jasper->compile($input)->execute();
@@ -120,8 +129,8 @@ require __DIR__ . '/vendor/autoload.php';
 
 use JasperPHP\JasperPHP;
 
-$input = __DIR__ . '/vendor/lavela/phpjasper/examples/hello_world.jasper';	
-$output = __DIR__;	
+$input = __DIR__ . '/vendor/lavela/phpjasper/examples/hello_world.jasper';
+$output = __DIR__;
 
 $jasper = new JasperPHP;
 
@@ -155,7 +164,7 @@ foreach($output as $parameter_description)
     print $parameter_description . '<pre>';
 ```
 
-###Advanced example
+###Advanced example - using a database
 
 We can also specify parameters for connecting to database:
 
@@ -163,10 +172,10 @@ We can also specify parameters for connecting to database:
 
 require __DIR__ . '/vendor/autoload.php';
 
-use JasperPHP\JasperPHP;	
+use JasperPHP\JasperPHP;
 
-$input = __DIR__ . '/vendor/lavela/phpjasper/examples/hello_world.jrxml';	
-$output = __DIR__;	
+$input = __DIR__ . '/vendor/lavela/phpjasper/examples/hello_world.jrxml';
+$output = __DIR__;
 
 $jasper = new JasperPHP;
 $jasper->process(
@@ -179,13 +188,12 @@ $jasper->process(
 		'username' => 'vagrant',
 		'host' => 'localhost',
 		'database' => 'samples',
-		'port' => '5433',
+		'port' => '5432',
 	)						
 )->execute();
 ```
 
-
-###Using in Laravel 5.1!
+###Using JasperPHP with Laravel 5.2!
 
 1. Install [Composer](http://getcomposer.org) if you don't have it.
 ```
@@ -196,44 +204,149 @@ Or in your 'composer.json' file add:
 ```javascript
 {
     "require": {
-		"lavela/phpjasper": "1.0",
+		"lavela/phpjasper": "1.*"
     }
 }
 ```
 2. And the just run:
 
-	composer update
+	**composer update**
 
 3. Add to your config/app.php providers array:
 
-	'JasperPHP\JasperPHPServiceProvider',
+	**JasperPHP\JasperPHPServiceProvider::class,**
 
-and thats it.
+4. Create a folder **/report** on **/public directory**
+
+5. Copy the file **hello_world.jrxml** in **/vendor/lavela/phpjasper/examples** from directory: **/public/report**
+
+6. Run **php artisan serve**
+
+7. Access **localhost:8000/reports**
+
+8. Check the directory **/public/report**. You now have 3 files, `hello_world.pdf`, `hello_world.rtf` and `hello_world.xml`.
+
+**Below the code you will use in your route.php**
 
 ```php
-use JasperPHP\JasperPHP as JasperPHP;
+use JasperPHP\JasperPHP;
 
-Route::get('/', function () {
-	
-    $output = public_path() . '/report/'.time().'_report.pdf';
+Route::get('/reports', function () {
+
+    $output = public_path() . '/report/'.time().'_hello_world';
     $report = new JasperPHP;
     $report->process(
-    	public_path() . '/report/report.jrxml', 
-        $output, 
-        array('pdf'),
+    	public_path() . '/report/hello_world.jrxml',
+        $output,
+        array('pdf', 'rtf', 'xml'),
         array(),
-        array(
-            'driver' => 'postgres',
-            'username' => 'username',
-            'password' => 'password',
-            'host' => 'localhost',
-            'database' => 'database',
-            'port' => '5432',
-            )  
+        array()  
         )->execute();
 });
 ```
+In this example we generate reports pdf, rtf and xml.
 
+
+###Additional Information - Reports from a xml in Laravel 5.2
+
+See how easy it is to generate a report with a source an xml file:
+
+```php
+
+use JasperPHP\JasperPHP;
+
+public function xmlToPdf()
+    {
+        $output = public_path() . '/report/'.time().'_CancelAck';
+        $ext = "pdf";
+        $data_file = public_path() . '/report/CancelAck.xml';
+        $driver = 'xml';
+        $xml_xpath = '/CancelResponse/CancelResult/ID';
+				$jasper = new JasperPHP;
+        $jasper->process(
+            public_path() . '/report/CancelAck.jrxml',
+            $output,
+            array($ext),
+            array(),
+            array('data_file' => $data_file, 'driver' => $driver, 'xml_xpath' => $xml_xpath),                   
+            false,
+            false
+        )->execute();
+
+        header('Content-Description: File Transfer');
+        header('Content-Type: application/octet-stream');
+        header('Content-Disposition: attachment; filename='.time().'_CancelAck.'.$ext);
+        header('Content-Transfer-Encoding: binary');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+        header('Content-Length: ' . filesize($output.'.'.$ext));
+        flush();
+        readfile($output.'.'.$ext);
+        unlink($output.'.'.$ext);
+
+    }
+```
+**Note:**
+
+To use the example above you must copy the sample files located at:
+
+**\vendor\lavela\phpjasper\src\JasperStarter\examples\CancelAck.jrxml**
+and
+**\vendor\lavela\phpjasper\src\JasperStarter\examples\CancelAck.xml**
+to folder:
+**\public\report**
+
+###Additional Information - Reports from a xml in Laravel 5.2
+
+See how easy it is to generate a report with a source an json file:
+
+```php
+
+use JasperPHP\JasperPHP;
+
+public function jsonToPdf()
+    {
+        $output = public_path() . '/report/'.time().'_Contacts';
+        $ext = "pdf";
+				$driver = 'json';
+				$json_query= "contacts.person";
+        $data_file = public_path() . '/report/contacts.json';
+
+				$jasper = new JasperPHP;
+        $jasper->process(
+            public_path() . '/report/json.jrxml',
+            $output,
+            array($ext),
+            array(),
+            array(
+							'driver' => $driver,
+							'json_query' => $json_query,
+							'data_file' => $data_file
+						)
+        )->execute();
+
+        header('Content-Description: File Transfer');
+        header('Content-Type: application/octet-stream');
+        header('Content-Disposition: attachment; filename='.time().'_CancelAck.'.$ext);
+        header('Content-Transfer-Encoding: binary');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+        header('Content-Length: ' . filesize($output.'.'.$ext));
+        flush();
+        readfile($output.'.'.$ext);
+        unlink($output.'.'.$ext);
+
+    }
+```
+**Note:**
+
+To use the example above you must copy the sample files located at:
+
+**\vendor\lavela\phpjasper\src\JasperStarter\examples\CancelAck.jrxml**
+and
+**\vendor\lavela\phpjasper\src\JasperStarter\examples\CancelAck.xml**
+to folder:
+**\public\report**
 
 ###MySQL
 
@@ -260,6 +373,8 @@ Drop me a line on Skype [leandro.bittencourt16] or E-Mail [leandrocintrabitencou
 Drop me a line on Skype [danielrodrigueslima] or E-Mail [danielrodrigues-ti@hotmail.com]
 
 Drop me a line on E-Mail [jefferson.barreto@outlook.com]
+
+Drop me a line on E-Mail [derick.tan988@gmail.com]
 
 ##License
 
